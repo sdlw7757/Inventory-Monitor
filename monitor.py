@@ -2,8 +2,6 @@ import json
 import time
 import re
 import os
-import smtplib
-from email.mime.text import MIMEText
 import requests
 
 # 冷却时间 30分钟
@@ -25,64 +23,64 @@ def extract_stock(html, keyword):
         if match:
             return int(match.group(1))
         pattern = re.compile(keyword + r'[\s\S]*?>(\d+)<', re.I)
-        match = pattern.search(html)
-        if match:
-            return int(match.group(1))
+        if pattern.search(html):
+            return int(pattern.search(html).group(1))
     except:
         pass
     return 0
 
-# 【139短信强制触发专用】
-def send_sms_alert(item, stock):
-    from_email = os.getenv("FROM_EMAIL")
-    from_pwd = os.getenv("FROM_PWD")
-    to_phone = os.getenv("TO_PHONE")
-    if not all([from_email, from_pwd, to_phone]):
+# 微信推送 Server酱
+def wechat_push(title, content):
+    key = os.getenv("SCT_KEY")
+    if not key:
+        print("❌ 未配置微信推送密钥")
         return
-
-    to_mail = f"{to_phone}@139.com"
-    # 关键：超短标题+紧急内容，139必转短信
-    subject = "紧急库存提醒"
-    content = "到货有货，尽快下单"
-
-    msg = MIMEText(content, "plain", "utf-8")
-    msg["Subject"] = subject
-    msg["From"] = from_email
-    msg["To"] = to_mail
-
+    url = f"https://sctapi.ftqq.com/{key}.send"
+    data = {
+        "title": title,
+        "desp": content
+    }
     try:
-        server = smtplib.SMTP_SSL("smtp.qq.com", 465)
-        server.login(from_email, from_pwd)
-        server.sendmail(from_email, to_mail, msg.as_string())
-        server.quit()
-        print("✅ 紧急邮件已发送，手机即将收到短信")
+        res = requests.post(url, data=data, timeout=10)
+        print("✅ 微信推送发送成功")
     except Exception as e:
-        print(f"❌ 发送失败：{e}")
+        print(f"❌ 微信推送失败：{str(e)}")
 
 def check_item(item):
-    url = item["url"]
-    keyword = item["keyword"]
+    url = item.get("url")
+    keyword = item.get("keyword")
     threshold = item.get("threshold", 0)
 
     try:
-        headers = {"User-Agent":"Mozilla/5.0"}
-        res = requests.get(url, headers=headers, timeout=10)
-        stock = extract_stock(res.text, keyword)
-        print(f"{keyword} | 库存：{stock}")
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r = requests.get(url, headers=headers, timeout=15)
+        html = r.text
+        stock = extract_stock(html, keyword)
+
+        print(f"商品：{keyword} | 库存：{stock} | 阈值：{threshold}")
 
         if stock > threshold:
-            key = f"{url}_{keyword}"
             now = int(time.time())
+            key = f"{url}_{keyword}"
             if key in last_alarm and now - last_alarm[key] < COOLDOWN:
+                print("⚠️ 冷却中，跳过提醒")
                 return
             last_alarm[key] = now
-            send_sms_alert(item, stock)
+
+            # 推送微信消息
+            title = "【库存告警】有货提醒"
+            content = f"商品：{keyword}\n当前库存：{stock}\n可前往下单"
+            wechat_push(title, content)
+
     except Exception as e:
-        print(f"❌ {keyword} 异常：{e}")
+        print(f"❌ 访问失败：{str(e)}")
 
 def main():
     config = load_config()
-    print("🚀 开始监控")
+    if not config:
+        print("ℹ️ 无监控配置")
+        return
+    print("🚀 开始监控库存...")
     for item in config:
         check_item(item)
 
