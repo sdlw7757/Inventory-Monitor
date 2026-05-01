@@ -55,10 +55,10 @@
 
 1. 将项目上传到你的 GitHub 仓库
 2. 添加 Secrets
-   -. 顶部菜单：Settings（设置）
-   -. 左侧找到：Secrets and variables
-   -. 点击：Actions
-   -. 点击绿色按钮：New repository secret
+   -- 顶部菜单：Settings（设置）
+   -- 左侧找到：Secrets and variables
+   -- 点击：Actions
+   -- 点击绿色按钮：New repository secret
 
 3. 在仓库配置 3 个密钥：
    - `FROM_EMAIL`：发件 QQ 邮箱
