@@ -54,11 +54,17 @@
 ### 2. 云端 24 小时运行（GitHub）
 
 1. 将项目上传到你的 GitHub 仓库
-2. 在仓库配置 3 个密钥：
+2. 添加 Secrets
+   -. 顶部菜单：Settings（设置）
+   -. 左侧找到：Secrets and variables
+   -. 点击：Actions
+   -. 点击绿色按钮：New repository secret
+
+3. 在仓库配置 3 个密钥：
    - `FROM_EMAIL`：发件 QQ 邮箱
    - `FROM_PWD`：QQ 邮箱 SMTP 授权码
    - `TO_PHONE`：接收短信手机号
-3. 自动开始监控，无需开机
+4. 自动开始监控，无需开机
 
 ## 📱 使用说明
 
