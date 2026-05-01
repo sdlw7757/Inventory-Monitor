@@ -4,7 +4,6 @@ import smtplib
 import re
 import os
 from email.mime.text import MIMEText
-from email.header import Header
 import requests
 
 # 冷却时间：30分钟
@@ -18,7 +17,7 @@ def load_config():
     except:
         return []
 
-# 精准库存抓取（和本地一致）
+# 精准库存提取
 def extract_stock(html, keyword):
     try:
         pattern = re.compile(keyword + r'[\s\S]*?库存[^\d]*?(\d+)', re.I)
@@ -34,33 +33,34 @@ def extract_stock(html, keyword):
         pass
     return 0
 
-# 【139强制短信专用格式】
+# 发送短信（139邮箱必达版）
 def send_sms_alert(item, stock):
     from_email = os.getenv("FROM_EMAIL")
     from_pwd = os.getenv("FROM_PWD")
     to_phone = os.getenv("TO_PHONE")
 
     if not from_email or not from_pwd or not to_phone:
-        print("❌ 邮箱/手机号密钥缺失")
+        print("❌ 未配置邮箱或手机号")
         return
 
     to_email = f"{to_phone}@139.com"
     title = "库存告警"
-    content = f"商品:{item['keyword']}\n库存:{stock}\n及时下单！"
+    content = f"商品:{item['keyword']}\n库存:{stock}\n地址:{item['url']}"
 
     msg = MIMEText(content, "plain", "utf-8")
-    msg["From"] = Header("库存监控", "utf-8") + f" <{from_email}>"
+    msg["From"] = from_email
     msg["To"] = to_email
-    msg["Subject"] = Header(title, "utf-8")
+    msg["Subject"] = title
 
     try:
         with smtplib.SMTP_SSL("smtp.qq.com", 465) as server:
             server.login(from_email, from_pwd)
             server.sendmail(from_email, [to_email], msg.as_string())
-        print(f"✅ 短信推送成功，即将下发至手机")
+        print(f"✅ 短信已发送至：{to_phone}")
     except Exception as e:
-        print(f"❌ 发送异常：{str(e)}")
+        print(f"❌ 发送失败：{str(e)}")
 
+# 检查单个商品
 def check_item(item):
     url = item.get("url")
     keyword = item.get("keyword")
@@ -71,7 +71,7 @@ def check_item(item):
 
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        r = requests.get(url, timeout=15, headers=headers)
+        r = requests.get(url, headers=headers, timeout=15)
         html = r.text
         stock = extract_stock(html, keyword)
 
@@ -81,7 +81,7 @@ def check_item(item):
             now = int(time.time())
             key = f"{url}_{keyword}"
             if key in last_alarm and now - last_alarm[key] < COOLDOWN:
-                print("⚠️ 冷却中，跳过提醒")
+                print("⚠️ 冷却中，不重复提醒")
                 return
             last_alarm[key] = now
             send_sms_alert(item, stock)
@@ -89,11 +89,13 @@ def check_item(item):
     except Exception as e:
         print(f"❌ 访问失败：{str(e)}")
 
+# 主程序
 def main():
     config = load_config()
     if not config:
-        print("ℹ️ 无监控配置")
+        print("ℹ️ 暂无监控项")
         return
+
     print("🚀 开始监控库存...")
     for item in config:
         check_item(item)
