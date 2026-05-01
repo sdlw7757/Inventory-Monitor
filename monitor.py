@@ -45,12 +45,10 @@ def send_sms_alert(item, stock):
         return
 
     to_email = f"{to_phone}@139.com"
-    # 超短标题 + 极简内容 = 139必弹短信
     title = "库存告警"
-    content = f"商品:{keyword}\n库存:{stock}\n及时下单！"
+    content = f"商品:{item['keyword']}\n库存:{stock}\n及时下单！"
 
     msg = MIMEText(content, "plain", "utf-8")
-    # 关键：编码+简短发件人
     msg["From"] = Header("库存监控", "utf-8") + f" <{from_email}>"
     msg["To"] = to_email
     msg["Subject"] = Header(title, "utf-8")
@@ -59,7 +57,7 @@ def send_sms_alert(item, stock):
         with smtplib.SMTP_SSL("smtp.qq.com", 465) as server:
             server.login(from_email, from_pwd)
             server.sendmail(from_email, [to_email], msg.as_string())
-        print(f"✅ 邮件推送成功，139即将下发短信")
+        print(f"✅ 短信推送成功，即将下发至手机")
     except Exception as e:
         print(f"❌ 发送异常：{str(e)}")
 
