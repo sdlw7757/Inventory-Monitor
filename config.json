@@ -1,6 +1,12 @@
 [
-    {
-        "url": "https://example.com",
-        "threshold": 100
-    }
+  {
+    "url": "https://www.heyunidc.cn/cart?fid=49&gid=97",
+    "keyword": "4H-4G-USTJ-002",
+    "threshold": 0
+  },
+  {
+    "url": "https://www.heyunidc.cn/cart?fid=49&gid=97",
+    "keyword": "16H-16G-HKTJ-003",
+    "threshold": 0
+  }
 ]
